@@ -1,0 +1,10 @@
+.build/
+build/
+.swiftpm/
+.DS_Store
+
+# Agent skills are vendored copies of other people's repositories;
+# skills-lock.json records which ones and at what hash, so the copies themselves
+# do not belong in this one.
+.claude/skills/
+.agents/skills/

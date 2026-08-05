@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: Build, test & smoke
+    # macOS 26, not 15: the window adopts Liquid Glass through `if #available`,
+    # which still needs the macOS 26 SDK at compile time. The app itself keeps
+    # running on macOS 15 — that is what the availability check is for.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Build (release, warnings as errors)
+        run: swift build -c release -Xswiftc -warnings-as-errors
+
+      # Not `swift test`: neither Testing nor XCTest ships with the Command Line
+      # Tools, so the suite is an executable (see Package.swift).
+      - name: Unit checks
+        run: .build/release/PaperSiftCheck
+
+      # The CLI drives the same engine the window does, so these prove the whole
+      # stack links and runs on a clean machine.
+      - name: Smoke test — a fresh index reports itself
+        run: .build/release/PaperSift --stats --database "$RUNNER_TEMP/ci-index.sqlite"
+
+      - name: Smoke test — searching an empty index is not an error
+        run: .build/release/PaperSift --search "turbine +gearbox -draft" --database "$RUNNER_TEMP/ci-index.sqlite"
+
+      - name: Smoke test — index this repository and find something in it
+        run: |
+          .build/release/PaperSift --index . --database "$RUNNER_TEMP/ci-repo.sqlite"
+          .build/release/PaperSift --search "PageChunker" --limit 20 --database "$RUNNER_TEMP/ci-repo.sqlite" | tee /tmp/found.txt
+          grep -q "PageChunker.swift" /tmp/found.txt
+
+      # The generated corpus covers what a repository full of Swift cannot: a PDF
+      # with a real text layer, and one whose pages are pictures of text, which is
+      # the only way to prove the OCR queue actually runs on a clean machine.
+      - name: Smoke test — the demo corpus, including the OCR path
+        run: |
+          swift scripts/demo-corpus.swift "$RUNNER_TEMP/demo"
+          .build/release/PaperSift --index "$RUNNER_TEMP/demo" --database "$RUNNER_TEMP/ci-demo.sqlite"
+          .build/release/PaperSift --stats --database "$RUNNER_TEMP/ci-demo.sqlite" | tee /tmp/stats.txt
+          grep -qE 'Pages +[0-9]+ +\([1-9][0-9]* from OCR\)' /tmp/stats.txt
+          .build/release/PaperSift --search "turbine gearbox" --database "$RUNNER_TEMP/ci-demo.sqlite" | tee /tmp/demo.txt
+          grep -q "gearbox-inspection-scan.pdf" /tmp/demo.txt
+          # node_modules must never reach the index.
+          ! grep -q "left-pad" /tmp/demo.txt
+
+      - name: Bundle the .app
+        run: ./scripts/bundle.sh --no-open
+
+      - name: Package the .dmg
+        run: ./scripts/make-dmg.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PaperSift-dmg
+          path: build/PaperSift-*.dmg
