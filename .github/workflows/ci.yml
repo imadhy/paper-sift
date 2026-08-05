@@ -13,7 +13,7 @@ jobs:
     # running on macOS 15 — that is what the availability check is for.
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Swift version
         run: swift --version
@@ -61,7 +61,7 @@ jobs:
         run: ./scripts/make-dmg.sh
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: PaperSift-dmg
           path: build/PaperSift-*.dmg
