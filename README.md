@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <code>brew install --cask --no-quarantine imadhy/tap/papersift</code>
+  <code>brew install --cask imadhy/tap/papersift</code>
 </p>
 
 <p align="center">
@@ -90,28 +90,29 @@ is all it needs.
 ### Homebrew (recommended)
 
 ```sh
-brew install --cask --no-quarantine imadhy/tap/papersift
+brew install --cask imadhy/tap/papersift
+xattr -cr /Applications/PaperSift.app     # once — see below
 ```
-
-`--no-quarantine` is there because the app is **not notarized** — this is an
-unsigned open source project, with no Apple Developer subscription behind it.
-Without that flag macOS refuses the first launch and you have to go through
-**System Settings → Privacy & Security → “Open Anyway”** instead. Nothing else
-about the install is unusual.
 
 Later: `brew upgrade --cask papersift`.
 
+That second line is there because PaperSift is **not notarized** — this is an
+unsigned open source project, with no Apple Developer subscription behind it — and
+Homebrew marks everything it downloads as quarantined. Gatekeeper then refuses the
+first launch. Clearing the flag is one way; going through **System Settings →
+Privacy & Security → “Open Anyway”** once is the other, and needs no Terminal.
+(Homebrew used to accept `--no-quarantine` for exactly this; Homebrew 6 removed
+the flag, so the step is now after the install rather than part of it.)
+
 ### Download the .dmg
 
-Grab the latest from [Releases](https://github.com/imadhy/paper-sift/releases),
-drag the app to `/Applications`, then either use **Open Anyway** as above or clear
-the flag yourself:
+Grab the latest from [Releases](https://github.com/imadhy/paper-sift/releases) and
+drag the app to `/Applications`. Same one-time Gatekeeper story as above: **Open
+Anyway**, or
 
 ```sh
 xattr -cr /Applications/PaperSift.app
 ```
-
-That friction is a one-time thing — see [Updates](#updates).
 
 ### Build from source (no Xcode needed)
 
@@ -148,8 +149,10 @@ command instead of a button:
 brew upgrade --cask papersift
 ```
 
-Neither path re-triggers Gatekeeper: files an app downloads itself carry no
-quarantine flag, and the cask is installed with `--no-quarantine`.
+A self-update never re-triggers Gatekeeper — files an app downloads itself carry no
+quarantine flag. A `brew upgrade` does re-download through Homebrew, so if you took
+the `xattr` route rather than **Open Anyway**, you may have to repeat it after an
+upgrade.
 
 ### First run
 
